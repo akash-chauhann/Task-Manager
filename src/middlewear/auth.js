@@ -9,7 +9,8 @@ export const auth= async(req,res,next)=>{
         {
             throw new Error();
         }
-        req.user = user;
+        req.token= token;
+        req.user= user;
         next();
    }
    catch(err)
