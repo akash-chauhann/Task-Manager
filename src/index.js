@@ -1,8 +1,8 @@
 import express from 'express';
 import {} from "./db/mongoose.js";
-import {Task} from "./models/task.js";
 import {userRouter} from "./routers/userRouter.js"
 import { taskRouter } from './routers/taskRouter.js';
+
 const app=express();
 const port= process.env.PORT || 3000;
 
