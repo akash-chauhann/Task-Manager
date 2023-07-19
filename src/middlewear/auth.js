@@ -15,6 +15,6 @@ export const auth= async(req,res,next)=>{
    }
    catch(err)
    {
-    res.status(401).send({Error:`Please authenticat : ${err}`})
+    res.status(401).send({Error:`Please authenticate`})
    }
 }

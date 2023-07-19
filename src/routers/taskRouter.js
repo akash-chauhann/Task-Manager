@@ -1,10 +1,14 @@
 import { Task } from "../models/task.js";
 import express from "express"
+import {auth} from "../middlewear/auth.js"
 
 export const taskRouter=new express.Router();
-taskRouter.post('/task',async(req,res)=>{
+taskRouter.post('/task',auth,async(req,res)=>{
     try{
-        const task=new Task(req.body);
+        const task = new Task({
+            ...req.body,
+            owner: req.user._id
+        })
         await task.save();
         res.send(task);
     }
@@ -14,10 +18,11 @@ taskRouter.post('/task',async(req,res)=>{
     }
 })
 
-taskRouter.get('/tasks',async(req,res)=>{
+taskRouter.get('/tasks',auth,async(req,res)=>{
     try{
-        const tasks= await Task.find({});
-        res.send(tasks);
+        //const tasks= await Task.find({owner:req.user._id});
+        await req.user.populate('tasks');
+        res.send(req.user.tasks);
     }
     catch(err)
     {
@@ -25,13 +30,13 @@ taskRouter.get('/tasks',async(req,res)=>{
     }
 })
 
-taskRouter.get('/tasks/:id',async(req,res)=>{
+taskRouter.get('/tasks/:id',auth,async(req,res)=>{
     try{
         const _id=req.params.id;
-        const task= await Task.findById(_id);
+        const task= await Task.findOne({ _id,owner: req.user._id})
         if(!task)
         {
-            return res.status(404).send();
+            return res.status(404).send({Error:"Can't find the Task"});
         }
         res.send(task);
     }
@@ -41,7 +46,7 @@ taskRouter.get('/tasks/:id',async(req,res)=>{
     }
 })
 
-taskRouter.patch('/tasks/:id',async(req,res)=>{
+taskRouter.patch('/tasks/:id',auth,async(req,res)=>{
     const updates=Object.keys(req.body);
     const allowedUpdates=['description','completed'];
     const isValidOption=updates.every((update)=>allowedUpdates.includes(update));
@@ -51,15 +56,15 @@ taskRouter.patch('/tasks/:id',async(req,res)=>{
     }
     try{
         //const task=await Task.findByIdAndUpdate(req.params.id,req.body,{new:true,runValidators:true})
-        const task=await Task.findById(req.params.id);
-        updates.forEach((update)=>{
-            task[update]=req.body[update];
-        })
-        await task.save();
+        const task=await Task.findOne({_id:req.params.id,owner:req.user._id})
         if(!task)
         {
             res.status(404).send()
         }
+        updates.forEach((update)=>{
+            task[update]=req.body[update];
+        })
+        await task.save();
         res.send(task);
     }
     catch(err)
@@ -69,9 +74,9 @@ taskRouter.patch('/tasks/:id',async(req,res)=>{
 }
 );
 
-taskRouter.delete('/tasks/:id',async(req,res)=>{
+taskRouter.delete('/tasks/:id',auth,async(req,res)=>{
     try{
-        const task=await Task.findByIdAndDelete(req.params.id);
+        const task=await Task.findOneAndDelete({_id:req.params.id, owner:req.user.id})
         if(!task)
         {
             res.status(404).send({error: 'User Not Found'});

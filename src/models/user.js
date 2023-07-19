@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 import validator from "validator";
 import bcryptjs from "bcryptjs"
 import jwt from "jsonwebtoken"
+import {Task} from "../models/task.js"
 
 const userSchema= new mongoose.Schema({
     name: {
@@ -49,6 +50,21 @@ const userSchema= new mongoose.Schema({
     }]
 });
 
+userSchema.virtual('tasks',
+{
+    ref: 'Task',
+    localField: '_id',
+    foreignField: 'owner'
+})
+
+userSchema.methods.toJSON = function() // this is to hide the private data of a user
+{
+    const user = this;
+    const userObject = user.toObject();
+    delete userObject.password;
+    delete userObject.tokens;
+    return userObject;
+}
 userSchema.methods.generateAuthToken = async function() //methods can be called on instances.
 {
     const user = this;
@@ -81,4 +97,9 @@ userSchema.pre('save',async function(next){
     next();
 });
 
+userSchema.pre('deleteOne',{ document: true },async function(next){
+    const user=this;
+    await Task.deleteMany({owner: user._id})
+    next();
+})
 export const User = mongoose.model('User',userSchema);
